@@ -99,6 +99,13 @@ function Set-TMAzureWorkSet (
                 }
                 $Script:WorkSet["NetworkInterface"] = Get-AzureRmNetworkInterface -Name $NetworkInterfaceName -ResourceGroupName $rg.ResourceGroupname -ErrorAction Stop
             }
+            "SQLServerName" {
+                $rg = $Script:WorkSet["ResourceGroup"]
+                if (!$rg) {
+                    Throw "ResourceGroup must be set before a SQLServerName can be used"
+                }
+                $Script:WorkSet["SQLServer"] = Get-AzureRmSqlServer -ResourceGroupName $rg.ResourceGroupname  -ServerName $SQLServerName
+            }
             default {
                 $value = $PSCmdlet.MyInvocation.BoundParameters[$name]
                 $Script:WorkSet[$name] = $value
@@ -160,7 +167,9 @@ function Get-TMAzureWorkSet
     [Parameter(Mandatory = $false, ParameterSetName = "25")]
     [switch]$SQLServer,
     [Parameter(Mandatory = $false, ParameterSetName = "26")]
-    [switch]$SQLAdminCredential
+    [switch]$SQLAdminCredential,
+    [Parameter(Mandatory = $false, ParameterSetName = "27")]
+    [switch]$SQLServerName
 ){
     if ($ResourceGroupName) {
          $rg = $Script:WorkSet["ResourceGroup"]
@@ -216,6 +225,11 @@ function Get-TMAzureWorkSet
         $nic = $Script:WorkSet["NetworkInterface"]
         $id = if ($nic) {$nic.Id} else {$null}
         return $id
+    }
+    if ($SQLServerName) {
+        $sql = $Script:WorkSet["SQLServer"]
+        $name = if ($sql) {$sql.name} else {$null}
+        return $name
     }
     foreach ($name in $PSCmdlet.MyInvocation.BoundParameters.Keys) {
         return $Script:WorkSet[$name]
