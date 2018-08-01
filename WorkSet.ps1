@@ -42,8 +42,15 @@ function Set-TMAzureWorkSet (
     [object]$LocalAdminCredential,
     [Parameter(Mandatory = $false)]
     [object]$VirtualMachineConfig,
+    [Parameter(Mandatory = $false)]    
+    [object]$VirtualMachine,
+    [Parameter(Mandatory = $false)]    
+    [object]$SQLServer,
+    [Parameter(Mandatory = $false)]    
+    [object]$SQLServerName,
     [Parameter(Mandatory = $false)]
-    [object]$VirtualMachine
+    [object]$SQLAdminCredential
+
 ){
     foreach ($name in $PSCmdlet.MyInvocation.BoundParameters.Keys) {
         switch ($name) {
@@ -90,7 +97,7 @@ function Set-TMAzureWorkSet (
                 if (!$rg) {
                     Throw "ResourceGroup must be set before a NetworkInterfaceName can be used"
                 }
-                $Script:WorkSet["NetworkInterface"] = Get-AzureRmNetworkInterface -Name $NetworkInterfaceName -ResourceGroupName $rg.ResourceGroupname - -ErrorAction Stop
+                $Script:WorkSet["NetworkInterface"] = Get-AzureRmNetworkInterface -Name $NetworkInterfaceName -ResourceGroupName $rg.ResourceGroupname -ErrorAction Stop
             }
             default {
                 $value = $PSCmdlet.MyInvocation.BoundParameters[$name]
@@ -149,7 +156,11 @@ function Get-TMAzureWorkSet
     [Parameter(Mandatory = $false, ParameterSetName = "23")]
     [switch]$VirtualMachineConfig,
     [Parameter(Mandatory = $false, ParameterSetName = "24")]
-    [switch]$VirtualMachine
+    [switch]$VirtualMachine,
+    [Parameter(Mandatory = $false, ParameterSetName = "25")]
+    [switch]$SQLServer,
+    [Parameter(Mandatory = $false, ParameterSetName = "26")]
+    [switch]$SQLAdminCredential
 ){
     if ($ResourceGroupName) {
          $rg = $Script:WorkSet["ResourceGroup"]
@@ -206,7 +217,6 @@ function Get-TMAzureWorkSet
         $id = if ($nic) {$nic.Id} else {$null}
         return $id
     }
-
     foreach ($name in $PSCmdlet.MyInvocation.BoundParameters.Keys) {
         return $Script:WorkSet[$name]
     }
@@ -220,4 +230,9 @@ function Invoke-TMAzureClearWorkSet ()
 function Set-TMAzureLocalAdminCredential([string]$Username, [string]$Password)
 {
     $Script:WorkSet["LocalAdminCredential"] = Get-TMAzureCredential $Username $Password
+}
+
+function Set-TMAzureSQLAdminCredential([string]$Username, [string]$Password)
+{
+    $Script:WorkSet["SQLAdminCredential"] = Get-TMAzureCredential $Username $Password
 }
