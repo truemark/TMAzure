@@ -49,7 +49,11 @@ function Set-TMAzureWorkSet (
     [Parameter(Mandatory = $false)]    
     [object]$SQLServerName,
     [Parameter(Mandatory = $false)]
-    [object]$SQLAdminCredential
+    [object]$SQLAdminCredential,
+    [Parameter(Mandatory = $false)]
+    [object]$ElasticPool,
+    [Parameter(Mandatory = $false)]
+    [object]$ElasticPoolName
 
 ){
     foreach ($name in $PSCmdlet.MyInvocation.BoundParameters.Keys) {
@@ -102,9 +106,17 @@ function Set-TMAzureWorkSet (
             "SQLServerName" {
                 $rg = $Script:WorkSet["ResourceGroup"]
                 if (!$rg) {
-                    Throw "ResourceGroup must be set before a SQLServerName can be used"
+                    Throw "ResourceGroup must be set before a SQL Server can be used"
                 }
-                $Script:WorkSet["SQLServer"] = Get-AzureRmSqlServer -ResourceGroupName $rg.ResourceGroupname  -ServerName $SQLServerName
+                $Script:WorkSet["SQLServer"] = Get-AzureRmSqlServer -Name $SQLServerName -ResourceGroupName $rg.ResourceGroupname -ErrorAction Stop
+            }
+            "ElasticPoolName" {
+                $sql = $Script:WorkSet["SQLServer"]
+                $rg = $Script:WorkSet["ResourceGroup"]
+                if (!$sql) {
+                    Throw "SQL Server must be set before a Elastic Pool can be used"
+                }
+                $Script:WorkSet["ElasticPool"] = Get-AzureRmSqlElasticPool -ElasticPoolName $ElasticPoolName -ResourceGroupName $rg.ResourceGroupname  -ServerName $sql.ServerName -ErrorAction Stop
             }
             default {
                 $value = $PSCmdlet.MyInvocation.BoundParameters[$name]
@@ -169,7 +181,9 @@ function Get-TMAzureWorkSet
     [Parameter(Mandatory = $false, ParameterSetName = "26")]
     [switch]$SQLAdminCredential,
     [Parameter(Mandatory = $false, ParameterSetName = "27")]
-    [switch]$SQLServerName
+    [switch]$SQLServerName,
+    [Parameter(Mandatory = $false, ParameterSetName = "28")]
+    [switch]$ElasticPoolName
 ){
     if ($ResourceGroupName) {
          $rg = $Script:WorkSet["ResourceGroup"]
@@ -198,7 +212,7 @@ function Get-TMAzureWorkSet
     }
     if ($PublicIpAddressName) {
         $pip = $Script:WorkSet["PublicIpAddress"]
-        $name = if ($pip) {$pip.NBame} else {$null}
+        $name = if ($pip) {$pip.Name} else {$null}
         return $name
     }
     if ($PublicIpAddressId) {
@@ -228,7 +242,12 @@ function Get-TMAzureWorkSet
     }
     if ($SQLServerName) {
         $sql = $Script:WorkSet["SQLServer"]
-        $name = if ($sql) {$sql.name} else {$null}
+        $name = if ($sql) {$sql.ServerName} else {$null}
+        return $name
+    }
+    if ($ElasticPoolName) {
+        $ep = $Script:WorkSet["ElasticPool"]
+        $name = if ($ep) {$ep.ElasticPoolName} else {$null}
         return $name
     }
     foreach ($name in $PSCmdlet.MyInvocation.BoundParameters.Keys) {

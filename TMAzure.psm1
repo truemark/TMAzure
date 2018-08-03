@@ -10,3 +10,4 @@ Import-Module AzureRM
 . $PSScriptRoot/Util.ps1
 . $PSScriptRoot/VirtualMachine.ps1
 . $PSScriptRoot/WorkSet.ps1
+. $PSScriptRoot/Database.ps1
