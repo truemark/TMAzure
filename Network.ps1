@@ -166,3 +166,48 @@ function Set-TMAzureNetworkInterface
     Set-TMAzureWorkSet -NetworkInterface $nic
     return $nic
 }
+
+function Set-TMAzureNetworkSecurityRule
+(
+    [Parameter(Mandatory = $true, Position = 0)]
+    [string]$Name,
+    [Parameter(Mandatory = $false, Position = 1)]
+    [string]$Description = "",
+    [Parameter(Mandatory = $false, Position = 2)]
+    [string]$Access = "Allow",
+    [Parameter(Mandatory = $false, Position = 3)]
+    [string]$Protocol = "*",
+    [Parameter(Mandatory = $false, Position = 4)]
+    [string]$Direction = "inbound",
+    [Parameter(Mandatory = $false, Position = 5)]
+    [Int32]$Priority = 100,
+    [Parameter(Mandatory = $false, Position = 6)]
+    [string]$SourceAddressPrefix = "Internet",
+    [Parameter(Mandatory = $false, Position = 7)]
+    [string]$SourcePortRange = "*",
+    [Parameter(Mandatory = $false, Position = 8)]
+    [string]$DestinationAddressPrefix = "*",
+    [Parameter(Mandatory = $false, Position = 9)]
+    [string]$DestinationPortRange = "*"
+) {
+    $nsg = Get-TMAzureWorkSet -NetworkSecurityGroup
+    if (!$nsg) {
+        throw "NetworkSecurityGroup not set"
+    }
+    $notPresent = $false
+    $nsrc = Get-AzureRmNetworkSecurityRuleConfig -Name $Name -NetworkSecurityGroup $nsg -ErrorVariable notPresent -ErrorAction SilentlyContinue
+    if ($notPresent) {
+        $nsrc = Add-AzureRmNetworkSecurityRuleConfig -NetworkSecurityGroup $nsg -Name $Name `
+        -Description $Description -Access $Access -Direction $Direction `
+        -Priority $Priority -Protocol $Protocol `
+        -SourceAddressPrefix $SourceAddressPrefix `
+        -SourcePortRange $SourcePortRange `
+        -DestinationAddressPrefix $DestinationAddressPrefix `
+        -DestinationPortRange $DestinationPortRange
+        Info("Creating NetworkSecurityRule $Name")
+        $nsrc | Set-AzureRmNetworkSecurityGroup
+    } else {
+        Info("NetworkSecurityRule $Name already exists")
+    }
+    return $nsrc
+}
