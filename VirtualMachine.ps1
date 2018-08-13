@@ -113,6 +113,37 @@ function Set-TMAzureVM()
     if (!$vm) {
         $vm = Get-AzureRmVM -Name $vmc.Name -ResourceGroupName $rgn -ErrorAction Stop
     }
-    Set-TMAzureWorkSet $vm
+    Set-TMAzureWorkSet -VirtualMachine $vm
     return $vm
+}
+
+function Set-TMAzureVMDataDisk(
+    [Parameter(Mandatory = $true, Position = 0)]
+    [string]$Name,
+    [Parameter(Mandatory = $true, Position = 1)]
+    [Int32]$Lun,
+    [Parameter(Mandatory = $false, Position = 2)]
+    [Int32]$DiskSizeInGB = 32,
+    [Parameter(Mandatory = $false, Position = 3)]
+    [string]$StorageAccountType = [TMAzureStorageSkus]::Standard_LRS.ToString()
+)
+{
+    $rgn = Get-TMAzureWorkSet -ResourceGroupName
+    if (!$rgn) {
+        throw "ResourceGroup is not set"
+    }
+    $vm = Get-TMAzureWorkSet -VirtualMachine
+    if (!$vm) {
+        throw "VirtualMachine is not set"
+    }
+    $notPresent = $false
+    $disk = Get-AzureRmDisk -ResourceGroupName $rgn -DiskName $Name -ErrorAction SilentlyContinue -ErrorVariable notPresent
+    if ($notPresent) {
+        Info "Creating disk $Name"
+        $disk = Add-AzureRmVMDataDisk -VM $vm -Name $Name -Lun $Lun -DiskSizeInGB $DiskSizeInGB -CreateOption Empty
+        Update-AzureRmVM -ResourceGroupName $rgn -VM $vm
+    } else {
+        Info "Disk $Name already exists"
+    }
+    return $disk
 }
