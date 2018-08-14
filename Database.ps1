@@ -10,7 +10,7 @@ function Set-TMAzureSqlServer
     # Validation - check that sql server doesn't exist
     $rgn = Get-TMAzureWorkSet -ResourceGroupName
     $loc = Get-TMAzureWorkSet -Location
-    $cred = Get-TMAzureWorkSet -SQLAdminCredential
+    $cred = Get-TMAzureWorkSet -SqlAdminCredential
 
     if (!$rgn) {
         throw "Resource Group is not set"
@@ -21,15 +21,11 @@ function Set-TMAzureSqlServer
     if (!$cred) {
         throw "SQL Admin Credential is not set" 
     }
-    if ($Name -notmatch ".*sql-vm[\d]+$") {
-        Warn "Best practices recommend a SQL Server name end with 'sql-vm<number>'"
-        Warn "See https://docs.microsoft.com/en-us/azure/architecture/best-practices/naming-conventions"
+    if ($Name -notmatch ".*sql[\d]+$") {
+        Warn "Best practices recommend a SQL Server name end with 'sql<number>'"
     }
     if ($Name -cne $Name.ToLower()) {
-        Warn "Best practice suggests VirtualMachine names should be lowercase"
-    }
-    if ($Name.length -gt 15) {
-        Warn "Best practive recommends a VirtualMachine name be 15 characters or less"
+        Warn "Best practice suggests SQL Server names should be lowercase"
     }
     $notPresent = $false
     $sqlserver = Get-AzureRmSqlServer -ResourceGroupName $rgn -Name $Name -ErrorVariable notPresent -ErrorAction SilentlyContinue
@@ -39,20 +35,20 @@ function Set-TMAzureSqlServer
         } Else {
             Info "SQL Server $Name already exists"
     }
-    Set-TMAzureWorkSet -SQLServerName $Name
-    return $Name
+    Set-TMAzureWorkSet -SqlServer $sqlserver
+    return $sqlserver
 }
-function Set-TMAzureSQLElasticPool
+
+function Set-TMAzureSqlElasticPool
 (
     [Parameter(Mandatory=$true)]
-    [string] $epname,
+    [string] $ElasticPoolName,
     [Parameter(Mandatory=$false)]
-    [ValidateSet("Basic", "Standard", "Premium", ignorecase=$True)]
-    [string] $edition,
+    [ValidateSet("Basic", "Standard", "Premium", ignorecase = $True)]
+    [string] $Edition,
     [Parameter(Mandatory=$false)]
-    [Int32] $dtu
-)
-{
+    [Int32] $Dtu
+) {
     $rgn = Get-TMAzureWorkSet -ResourceGroupName
     $sn = Get-TMAzureWorkSet -SQLServerName
     # Validation
@@ -62,56 +58,51 @@ function Set-TMAzureSQLElasticPool
     if (!$sn) {
         throw "SQL Server is not set"
     }
-    if ($edition -eq "Basic" ) 
-    {
+    if ($Edition -eq "Basic" ) {
         [int[]] $TMAzureElasticPoolBasicDTU = 50,100,200,300,400,800,1200,1600
-        if (!($TMAzureElasticPoolBasicDTU -contains $dtu))
+        if (!($TMAzureElasticPoolBasicDTU -contains $Dtu))
         {
-            Info "DTU's for $edition must be set to $TMAzureElasticPoolBasicDTU DTU's "
-            throw "Basic Edition of the Elastic Pool doesn't allow $dtu DTU's"
+            Info "DTU's for $Edition must be set to $TMAzureElasticPoolBasicDTU DTU's "
+            throw "Basic Edition of the Elastic Pool doesn't allow $Dtu DTU's"
             Throw "See https://docs.microsoft.com/en-us/azure/sql-database/sql-database-dtu-resource-limits-elastic-pools#elastic-pool-storage-sizes-and-performance-levels"
         }
     }
-    if ($edition -eq "Standard")
-    {
+    if ($Edition -eq "Standard") {
         [int[]] $TMAzureElasticPoolStandardDTU = 50,100,200,300,400,800,1200,1600,2000,2500,3000
-        if (!($TMAzureElasticPoolStandardDTU -contains $dtu))
+        if (!($TMAzureElasticPoolStandardDTU -contains $Dtu))
         {
-            Info "DTU's for $edition must be set to $TMAzureElasticPoolStandardDTU DTU's "
-            throw "Standard Edition of the Elastic Pool doesn't allow $dtu DTU's"
+            Info "DTU's for $Edition must be set to $TMAzureElasticPoolStandardDTU DTU's "
+            throw "Standard Edition of the Elastic Pool doesn't allow $Dtu DTU's"
             Throw "See https://docs.microsoft.com/en-us/azure/sql-database/sql-database-dtu-resource-limits-elastic-pools#elastic-pool-storage-sizes-and-performance-levels"
-
         }
     }
-    if ($edition -eq "Premium")
-    {
+    if ($Edition -eq "Premium") {
         [int[]] $TMAzureElasticPoolPremiumDTU = 125,250,500,1000,1500,2000,2500,3000,3500,4000
-        if (!($TMAzureElasticPoolPremiumDTU -contains $dtu))
+        if (!($TMAzureElasticPoolPremiumDTU -contains $Dtu))
         {
-            Info "DTU's for $edition must be set to $TMAzureElasticPoolPremiumDTU DTU's "
-            throw "Premium Edition of the Elastic Pool doesn't allow $dtu DTU's"
+            Info "DTU's for $Edition must be set to $TMAzureElasticPoolPremiumDTU DTU's "
+            throw "Premium Edition of the Elastic Pool doesn't allow $Dtu DTU's"
             Throw "See https://docs.microsoft.com/en-us/azure/sql-database/sql-database-dtu-resource-limits-elastic-pools#elastic-pool-storage-sizes-and-performance-levels"
-
         }
     }
-    if ($epname -cne $epname.ToLower()) {
-        $epname = $epname.ToLower()
+    if ($ElasticPoolName -cne $ElasticPoolName.ToLower()) {
         Warn "Best practice suggests Elastic Pool names should be lowercase"
-        Info "Modifying Elastic Pool name to $epname"
     }
-    if ($epname.endsWith("-ep")) {
+    if (!$ElasticPoolName.endsWith("-ep")) {
         Warn "Best practices recommend a Elastic Pool name end with '-ep'"
     }
     $notPresent = $false
     # Checks if the Elastic Pool already exists
-    $elasticpool = Get-AzureRmSqlElasticPool -ResourceGroupName $rgn -ServerName $sn -ElasticPoolName $epname -ErrorVariable notPresent -ErrorAction SilentlyContinue
+    $elasticpool = Get-AzureRmSqlElasticPool -ResourceGroupName $rgn -ServerName $sn `
+    -ElasticPoolName $ElasticPoolName -ErrorVariable notPresent -ErrorAction SilentlyContinue
     # Creates the Elastic Pool if it doesn't exit
     if ($notPresent) {
-        Info "Creating Elastic Pool $epname on $sn"
-        $elasticpool = New-AzureRmSqlElasticPool -ResourceGroupName $rgn -ElasticPoolName $epname -ServerName $sn -Edition $edition -Dtu $dtu 
+        Info "Creating Elastic Pool $ElasticPoolName on $sn"
+        $elasticpool = New-AzureRmSqlElasticPool -ResourceGroupName $rgn `
+        -ElasticPoolName $ElasticPoolName -ServerName $sn -Edition $Edition -Dtu $Dtu 
     } else {
-            Info "Elastic Pool $epname on $sn already exists"
+        Info "Elastic Pool $ElasticPoolName on $sn already exists"
     }
-    Set-TMAzureWorkSet -ElasticPoolName $epname
-    return $epname
+    Set-TMAzureWorkSet -SqlElasticPool $elasticpool
+    return $elasticpool
 }

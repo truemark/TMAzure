@@ -45,15 +45,15 @@ function Set-TMAzureWorkSet (
     [Parameter(Mandatory = $false)]    
     [object]$VirtualMachine,
     [Parameter(Mandatory = $false)]    
-    [object]$SQLServer,
+    [object]$SqlServer,
     [Parameter(Mandatory = $false)]    
-    [object]$SQLServerName,
+    [object]$SqlServerName,
     [Parameter(Mandatory = $false)]
-    [object]$SQLAdminCredential,
+    [object]$SqlAdminCredential,
     [Parameter(Mandatory = $false)]
-    [object]$ElasticPool,
+    [object]$SqlElasticPool,
     [Parameter(Mandatory = $false)]
-    [object]$ElasticPoolName
+    [object]$SqlElasticPoolName
 
 ){
     foreach ($name in $PSCmdlet.MyInvocation.BoundParameters.Keys) {
@@ -103,20 +103,23 @@ function Set-TMAzureWorkSet (
                 }
                 $Script:WorkSet["NetworkInterface"] = Get-AzureRmNetworkInterface -Name $NetworkInterfaceName -ResourceGroupName $rg.ResourceGroupname -ErrorAction Stop
             }
-            "SQLServerName" {
+            "SqlServerName" {
                 $rg = $Script:WorkSet["ResourceGroup"]
                 if (!$rg) {
-                    Throw "ResourceGroup must be set before a SQL Server can be used"
+                    Throw "ResourceGroup must be set before a SqlServer can be used"
                 }
-                $Script:WorkSet["SQLServer"] = Get-AzureRmSqlServer -Name $SQLServerName -ResourceGroupName $rg.ResourceGroupname -ErrorAction Stop
+                $Script:WorkSet["SqlServer"] = Get-AzureRmSqlServer -Name $SqlServerName -ResourceGroupName $rg.ResourceGroupname -ErrorAction Stop
             }
-            "ElasticPoolName" {
-                $sql = $Script:WorkSet["SQLServer"]
+            "SqlElasticPoolName" {
                 $rg = $Script:WorkSet["ResourceGroup"]
-                if (!$sql) {
-                    Throw "SQL Server must be set before a Elastic Pool can be used"
+                if (!$rg) {
+                    Throw "ResourceGroup must be set before a SqlServer can be used"
                 }
-                $Script:WorkSet["ElasticPool"] = Get-AzureRmSqlElasticPool -ElasticPoolName $ElasticPoolName -ResourceGroupName $rg.ResourceGroupname  -ServerName $sql.ServerName -ErrorAction Stop
+                $sql = $Script:WorkSet["SqlServer"]
+                if (!$sql) {
+                    Throw "SqlServer must be set before a SqlElasticPool can be used"
+                }
+                $Script:WorkSet["SqlElasticPool"] = Get-AzureRmSqlElasticPool -ElasticPoolName $SqlElasticPoolName -ResourceGroupName $rg.ResourceGroupname  -ServerName $sql.ServerName -ErrorAction Stop
             }
             default {
                 $value = $PSCmdlet.MyInvocation.BoundParameters[$name]
@@ -177,13 +180,15 @@ function Get-TMAzureWorkSet
     [Parameter(Mandatory = $false, ParameterSetName = "24")]
     [switch]$VirtualMachine,
     [Parameter(Mandatory = $false, ParameterSetName = "25")]
-    [switch]$SQLServer,
+    [switch]$SqlServer,
     [Parameter(Mandatory = $false, ParameterSetName = "26")]
-    [switch]$SQLAdminCredential,
+    [switch]$SqlAdminCredential,
     [Parameter(Mandatory = $false, ParameterSetName = "27")]
-    [switch]$SQLServerName,
+    [switch]$SqlServerName,
     [Parameter(Mandatory = $false, ParameterSetName = "28")]
-    [switch]$ElasticPoolName
+    [switch]$SqlElasticPool,
+    [Parameter(Mandatory = $false, ParameterSetName = "29")]
+    [switch]$SqlElasticPoolName
 ){
     if ($ResourceGroupName) {
          $rg = $Script:WorkSet["ResourceGroup"]
@@ -240,13 +245,13 @@ function Get-TMAzureWorkSet
         $id = if ($nic) {$nic.Id} else {$null}
         return $id
     }
-    if ($SQLServerName) {
-        $sql = $Script:WorkSet["SQLServer"]
+    if ($SqlServerName) {
+        $sql = $Script:WorkSet["SqlServer"]
         $name = if ($sql) {$sql.ServerName} else {$null}
         return $name
     }
-    if ($ElasticPoolName) {
-        $ep = $Script:WorkSet["ElasticPool"]
+    if ($SqlElasticPoolName) {
+        $ep = $Script:WorkSet["SqlElasticPool"]
         $name = if ($ep) {$ep.ElasticPoolName} else {$null}
         return $name
     }
@@ -265,7 +270,7 @@ function Set-TMAzureLocalAdminCredential([string]$Username, [string]$Password)
     $Script:WorkSet["LocalAdminCredential"] = Get-TMAzureCredential $Username $Password
 }
 
-function Set-TMAzureSQLAdminCredential([string]$Username, [string]$Password)
+function Set-TMAzureSqlAdminCredential([string]$Username, [string]$Password)
 {
-    $Script:WorkSet["SQLAdminCredential"] = Get-TMAzureCredential $Username $Password
+    $Script:WorkSet["SqlAdminCredential"] = Get-TMAzureCredential $Username $Password
 }
