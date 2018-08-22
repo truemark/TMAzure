@@ -13,7 +13,8 @@ Enum TMAzureStorageSkus
 Enum TMAzureStorageKind
 {
     Storage
-    BlogStorage
+    StorageV2
+    BlobStorage
 }
 
 function Set-TMAzureStorageAccount
@@ -21,7 +22,7 @@ function Set-TMAzureStorageAccount
     [Parameter(Mandatory=$true, Position=2)]
     [string]$Name,
     [Parameter(Mandatory=$false, Position=3)]
-    [string]$SkuName = [TMAzureStorageSkus]::Premium_LRS.ToString(),
+    [string]$SkuName = [TMAzureStorageSkus]::Standard_LRS.ToString(),
     [Parameter(Mandatory=$false, Position=4)]
     [string]$Kind = [TMAzureStorageKind]::Storage.ToString()
 )
