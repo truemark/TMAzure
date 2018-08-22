@@ -17,13 +17,12 @@ function Set-TMAzureSubnet
     if ($Name -cne $Name.ToLower()) {
         Warn "Best practice suggests Subnet names should be lowercase"
     }
-
     $notPresent = $false
     Get-AzureRmVirtualNetworkSubnetConfig -VirtualNetwork $vnet -Name $Name -ErrorAction SilentlyContinue -ErrorVariable notPresent
     if ($notPresent) {
         Info "Creating Subnet $Name in VirtualNetwork $($vnet.Name)"
         Add-AzureRmVirtualNetworkSubnetConfig -VirtualNetwork $vnet -Name $Name -AddressPrefix $AddressPrefix -ErrorAction Stop
-        $VirtualNetwork | Set-AzureRmVirtualNetwork
+        $vnet | Set-AzureRmVirtualNetwork
     } else {
         Info "Subnet $Name already exists"
     }
