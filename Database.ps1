@@ -21,8 +21,8 @@ function Set-TMAzureSqlServer
     if (!$cred) {
         throw "SQL Admin Credential is not set" 
     }
-    if ($Name -notmatch ".*sql[\d]+$") {
-        Warn "Best practices recommend a SQL Server name end with 'sql<number>'"
+    if ($Name -notmatch ".*sql[\d]*$") {
+        Warn "Best practices recommend a SQL Server name end with 'sql' or 'sql<number>'"
     }
     if ($Name -cne $Name.ToLower()) {
         Warn "Best practice suggests SQL Server names should be lowercase"
@@ -42,12 +42,12 @@ function Set-TMAzureSqlServer
 function Set-TMAzureSqlElasticPool
 (
     [Parameter(Mandatory=$true)]
-    [string] $ElasticPoolName,
+    [string]$ElasticPoolName,
     [Parameter(Mandatory=$false)]
     [ValidateSet("Basic", "Standard", "Premium", ignorecase = $True)]
-    [string] $Edition,
+    [string]$Edition,
     [Parameter(Mandatory=$false)]
-    [Int32] $Dtu
+    [Int32]$Dtu
 ) {
     $rgn = Get-TMAzureWorkSet -ResourceGroupName
     $sn = Get-TMAzureWorkSet -SQLServerName
@@ -63,8 +63,8 @@ function Set-TMAzureSqlElasticPool
         if (!($TMAzureElasticPoolBasicDTU -contains $Dtu))
         {
             Info "DTU's for $Edition must be set to $TMAzureElasticPoolBasicDTU DTU's "
-            throw "Basic Edition of the Elastic Pool doesn't allow $Dtu DTU's"
-            Throw "See https://docs.microsoft.com/en-us/azure/sql-database/sql-database-dtu-resource-limits-elastic-pools#elastic-pool-storage-sizes-and-performance-levels"
+            throw "Basic Edition of the Elastic Pool doesn't allow $Dtu DTU's" + `
+            "See https://docs.microsoft.com/en-us/azure/sql-database/sql-database-dtu-resource-limits-elastic-pools#elastic-pool-storage-sizes-and-performance-levels"
         }
     }
     if ($Edition -eq "Standard") {
@@ -72,8 +72,8 @@ function Set-TMAzureSqlElasticPool
         if (!($TMAzureElasticPoolStandardDTU -contains $Dtu))
         {
             Info "DTU's for $Edition must be set to $TMAzureElasticPoolStandardDTU DTU's "
-            throw "Standard Edition of the Elastic Pool doesn't allow $Dtu DTU's"
-            Throw "See https://docs.microsoft.com/en-us/azure/sql-database/sql-database-dtu-resource-limits-elastic-pools#elastic-pool-storage-sizes-and-performance-levels"
+            throw "Standard Edition of the Elastic Pool doesn't allow $Dtu DTU's" + `
+            "See https://docs.microsoft.com/en-us/azure/sql-database/sql-database-dtu-resource-limits-elastic-pools#elastic-pool-storage-sizes-and-performance-levels"
         }
     }
     if ($Edition -eq "Premium") {
@@ -81,8 +81,8 @@ function Set-TMAzureSqlElasticPool
         if (!($TMAzureElasticPoolPremiumDTU -contains $Dtu))
         {
             Info "DTU's for $Edition must be set to $TMAzureElasticPoolPremiumDTU DTU's "
-            throw "Premium Edition of the Elastic Pool doesn't allow $Dtu DTU's"
-            Throw "See https://docs.microsoft.com/en-us/azure/sql-database/sql-database-dtu-resource-limits-elastic-pools#elastic-pool-storage-sizes-and-performance-levels"
+            throw "Premium Edition of the Elastic Pool doesn't allow $Dtu DTU's" + `
+            "See https://docs.microsoft.com/en-us/azure/sql-database/sql-database-dtu-resource-limits-elastic-pools#elastic-pool-storage-sizes-and-performance-levels"
         }
     }
     if ($ElasticPoolName -cne $ElasticPoolName.ToLower()) {
@@ -105,4 +105,34 @@ function Set-TMAzureSqlElasticPool
     }
     Set-TMAzureWorkSet -SqlElasticPool $elasticpool
     return $elasticpool
+}
+
+function Set-TMAzureSqlDatabase
+(
+    [Parameter(Mandatory = $true, position = 0)]
+    [string]$DatabaseName
+) {
+    $rgn = Get-TMAzureWorkSet -ResourceGroupName
+    if (!$rgn) {
+       throw "ResourceGroup is not set"
+    }
+    $sn = Get-TMAzureWorkSet -SqlServerName
+    if (!$sn) {
+       throw "SqlServerName not set"
+    }
+    if ($DatabaseName -cne $DatabaseName.ToLower()) {
+       Warn "Best practice suggests DatabaseNames should be lowercase"
+    }
+
+    $notPresent = $false
+    $db = Get-AzureRmSqlDatabase -DatabaseName $DatabaseName -ServerName $sn `
+    -ResourceGroupName $rgn -ErrorVariable notPresent -ErrorAction SilentlyContinue
+    if ($notPresent) {
+        Info "Creating database $DatabaseName"
+        $db = New-AzureRmSqlDatabase -DatabaseName $DatabaseName -ServerName $sn `
+        -ResourceGroupName $rgn -ErrorAction Stop
+    } else {
+        Info "Databae $DatabaseName already exists"
+    }
+    return $db
 }
