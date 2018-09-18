@@ -131,7 +131,7 @@ function Set-TMAzureSqlDatabase
         Info "Creating database $DatabaseName"
         $epName = Get-TMAzureWorkSet -SqlElasticPoolName
         if ($epName) {
-            $db = New-AzureRmSqlDatabase -DatabaseName $DatabaseName  -ElasticPoolName $epName `
+            $db = New-AzureRmSqlDatabase -DatabaseName $DatabaseName -ServerName $sn -ElasticPoolName $epName `
             -ResourceGroupName $rgn -ErrorAction Stop
         } else {
             $db = New-AzureRmSqlDatabase -DatabaseName $DatabaseName -ServerName $sn `
