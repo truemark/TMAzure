@@ -129,8 +129,14 @@ function Set-TMAzureSqlDatabase
     -ResourceGroupName $rgn -ErrorVariable notPresent -ErrorAction SilentlyContinue
     if ($notPresent) {
         Info "Creating database $DatabaseName"
-        $db = New-AzureRmSqlDatabase -DatabaseName $DatabaseName -ServerName $sn `
-        -ResourceGroupName $rgn -ErrorAction Stop
+        $epName = Get-TMAzureWorkSet -SqlElasticPoolName
+        if ($epName) {
+            $db = New-AzureRmSqlDatabase -DatabaseName $DatabaseName  -ElasticPoolName $epName `
+            -ResourceGroupName $rgn -ErrorAction Stop
+        } else {
+            $db = New-AzureRmSqlDatabase -DatabaseName $DatabaseName -ServerName $sn `
+            -ResourceGroupName $rgn -ErrorAction Stop
+        }    
     } else {
         Info "Databae $DatabaseName already exists"
     }
